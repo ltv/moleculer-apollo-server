@@ -1,6 +1,6 @@
 {
-  "name": "moleculer-apollo-server",
-  "version": "0.1.0",
+  "name": "@ltv/moleculer-apollo-server",
+  "version": "0.1.2",
   "description": "Apollo GraphQL server for Moleculer API Gateway",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "type": "git",
     "url": "https://github.com/moleculerjs/moleculer-apollo-server.git"
   },
-  "author": "MoleculerJS",
+  "author": "Luc <luc@ltv.vn>",
   "license": "MIT",
   "peerDependencies": {
     "graphql": ">= 14.x.x",
@@ -68,5 +68,6 @@
     "graphql-tools": "4.0.4",
     "graphql-upload": "^8.0.4",
     "lodash": "4.17.11"
-  }
+  },
+  "types": "index.d.ts"
 }
