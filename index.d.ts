@@ -37,8 +37,8 @@ declare module '@ltv/moleculer-apollo-server' {
       path: string;
       cors: boolean | Object;
       mappingPolicy: string;
-      aliases: any;
-      bodyParsers: any;
+      aliases?: any;
+      bodyParsers?: any;
     };
     serverOptions: Config;
   }
