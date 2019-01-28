@@ -31,8 +31,8 @@ declare module '@ltv/moleculer-apollo-server' {
   }
 
   export interface ApolloServiceOptions {
-    typeDefs: string;
-    resolvers: any;
+    typeDefs?: string;
+    resolvers?: any;
     routeOptions: {
       path: string;
       cors: boolean | Object;
