@@ -106,7 +106,9 @@ module.exports = function(mixinOptions) {
 							if (root && rootKeys) {
 								rootKeys.forEach(k => _.set(p, def.rootParams[k], _.get(root, k)));
 							}
-							return await context.ctx.call(actionName, _.defaultsDeep(args, p, params));
+
+							const parentParams = context.params.variables || {};
+							return await context.ctx.call(actionName, _.defaultsDeep(args, p, params, { ...parentParams }));
 						}
 					} catch (err) {
 						if (nullIfError) {
