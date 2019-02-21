@@ -96,8 +96,9 @@ module.exports = function(mixinOptions) {
 					if (root && rootKeys) {
 						rootKeys.forEach(k => _.set(p, def.rootParams[k], _.get(root, k)));
 					}
+					const parentParams = context.params.variables || {};
 					try {
-						return await context.ctx.call(actionName, _.defaultsDeep(args, p, params));
+						return await context.ctx.call(actionName, _.defaultsDeep(args, p, params, { ...parentParams }));
 					} catch(err) {
 						if (err && err.ctx)
 							delete err.ctx; // Avoid circular JSON
