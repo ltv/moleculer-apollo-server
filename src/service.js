@@ -6,16 +6,15 @@
 
 "use strict";
 
-const _ 						= require("lodash");
-const { MoleculerServerError } 	= require("moleculer").Errors;
-const { ApolloServer } 			= require("./ApolloServer");
+const _ = require("lodash");
+const { MoleculerServerError } = require("moleculer").Errors;
+const { ApolloServer } = require("./ApolloServer");
 const DataLoader = require("dataloader");
-const { makeExecutableSchema }	= require("graphql-tools");
-const GraphQL 					= require("graphql");
-const { PubSub, withFilter }	= require("graphql-subscriptions");
+const { makeExecutableSchema } = require("graphql-tools");
+const GraphQL = require("graphql");
+const { PubSub, withFilter } = require("graphql-subscriptions");
 
 module.exports = function(mixinOptions) {
-
 	mixinOptions = _.defaultsDeep(mixinOptions, {
 		routeOptions: {
 			path: "/graphql",
@@ -23,14 +22,16 @@ module.exports = function(mixinOptions) {
 		schema: null,
 		serverOptions: {},
 		createAction: true,
-		subscriptionEventName: "graphql.publish"
+		subscriptionEventName: "graphql.publish",
 	});
 
 	let shouldUpdateSchema = true;
 
 	const serviceSchema = {
 		events: {
-			"$services.changed"() { this.invalidateGraphQLSchema(); },
+			"$services.changed"() {
+				this.invalidateGraphQLSchema();
+			},
 		},
 
 		methods: {
@@ -48,35 +49,34 @@ module.exports = function(mixinOptions) {
 			 * @param {String} action
 			 */
 			getResolverActionName(service, action) {
-				if (action.indexOf(".") === -1)
+				if (action.indexOf(".") === -1) {
 					return `${service}.${action}`;
-				else
+				} else {
 					return action;
+				}
 			},
 
 			/**
-			 * Create resolvers for actions.
+			 * Create resolvers from service settings
 			 *
 			 * @param {String} serviceName
 			 * @param {Object} resolvers
 			 */
-			createActionResolvers(serviceName, resolvers) {
-				const res = {};
-				_.forIn(resolvers, (r, name) => {
-					if (_.isString(r)) {
-						// If String, it is an action name
-						res[name] = this.createActionResolver(this.getResolverActionName(serviceName, r));
-					}
-					else if (_.isPlainObject(r)) {
-						// If Object, it is a remote action resolver
-						res[name] = this.createActionResolver(this.getResolverActionName(serviceName, r.action), r);
+			createServiceResolvers(serviceName, resolvers) {
+				return Object.entries(resolvers).reduce((acc, [name, r]) => {
+					if (_.isPlainObject(r) && r.action != null) {
+						// matches signature for remote action resolver
+						acc[name] = this.createActionResolver(
+							this.getResolverActionName(serviceName, r.action),
+							r,
+						);
 					} else {
-						// Something else.
-						res[name] = r;
+						// something else (enum, etc.)
+						acc[name] = r;
 					}
-				});
 
-				return res;
+					return acc;
+				}, {});
 			},
 
 			/**
@@ -122,7 +122,6 @@ module.exports = function(mixinOptions) {
 				};
 			},
 
-
 			/**
 			 * Create resolver for subscription
 			 *
@@ -132,11 +131,17 @@ module.exports = function(mixinOptions) {
 			 */
 			createAsyncIteratorResolver(actionName, tags = [], filter = false) {
 				return {
-					subscribe: filter ? withFilter(
-						() => this.pubsub.asyncIterator(tags),
-						async (payload, params, ctx) => payload !== undefined ? this.broker.call(filter, { ...params, payload }, ctx) : false,
-					) : () => this.pubsub.asyncIterator(tags),
-					resolve: async (payload, params, ctx) => this.broker.call(actionName, { ...params, payload }, ctx),
+					subscribe: filter
+						? withFilter(
+								() => this.pubsub.asyncIterator(tags),
+								async (payload, params, ctx) =>
+									payload !== undefined
+										? this.broker.call(filter, { ...params, payload }, ctx)
+										: false,
+						  )
+						: () => this.pubsub.asyncIterator(tags),
+					resolve: async (payload, params, ctx) =>
+						this.broker.call(actionName, { ...params, payload }, ctx),
 				};
 			},
 
@@ -151,11 +156,13 @@ module.exports = function(mixinOptions) {
 					let typeDefs = [];
 					let resolvers = {};
 
-					if (mixinOptions.typeDefs)
+					if (mixinOptions.typeDefs) {
 						typeDefs.push(mixinOptions.typeDefs);
+					}
 
-					if (mixinOptions.resolvers)
+					if (mixinOptions.resolvers) {
 						resolvers = _.cloneDeep(mixinOptions.resolvers);
+					}
 
 					const queries = [];
 					const types = [];
@@ -184,8 +191,9 @@ module.exports = function(mixinOptions) {
 									queries.push(globalDef.query);
 								}
 
-								if (globalDef.type)
+								if (globalDef.type) {
 									types.push(globalDef.type);
+								}
 
 								if (globalDef.mutation) {
 									mutations.push(globalDef.mutation);
@@ -195,21 +203,28 @@ module.exports = function(mixinOptions) {
 									subscriptions.push(globalDef.subscription);
 								}
 
-								if (globalDef.interface)
+								if (globalDef.interface) {
 									interfaces.push(globalDef.interface);
+								}
 
-								if (globalDef.union)
+								if (globalDef.union) {
 									unions.push(globalDef.union);
+								}
 
-								if (globalDef.enum)
+								if (globalDef.enum) {
 									enums.push(globalDef.enum);
+								}
 
-								if (globalDef.input)
+								if (globalDef.input) {
 									inputs.push(globalDef.input);
+								}
 
 								if (globalDef.resolvers) {
 									_.forIn(globalDef.resolvers, (r, name) => {
-										resolvers[name] = _.merge(resolvers[name] || {}, this.createActionResolvers(serviceName, r));
+										resolvers[name] = _.merge(
+											resolvers[name] || {},
+											this.createServiceResolvers(serviceName, r),
+										);
 									});
 								}
 							}
@@ -224,57 +239,74 @@ module.exports = function(mixinOptions) {
 									const def = action.graphql;
 
 									if (def.query) {
-										const name = def.query.split(/[(:]/g)[0];
+										const name = def.query.trim().split(/[(:]/g)[0];
 										queries.push(def.query);
 										if (!resolver["Query"]) resolver.Query = {};
 										resolver.Query[name] = this.createActionResolver(action.name);
 									}
 
-									if (def.type)
+									if (def.type) {
 										types.push(def.type);
+									}
 
 									if (def.mutation) {
-										const name = def.mutation.split(/[(:]/g)[0];
-										mutations.push(def.mutation);
+										let mutation = def.mutation
+											.trim()
+											.split(/[\n]/g)
+											.map(m => m.trim());
+										let names = mutation.map(m => m.trim().split(/[(:]/g)[0]);
 										if (!resolver["Mutation"]) resolver.Mutation = {};
-										resolver.Mutation[name] = this.createActionResolver(action.name);
+										mutations.push(...mutation);
+										names.forEach(name => {
+											resolver.Mutation[name] = this.createActionResolver(action.name);
+										});
 									}
 
 									if (def.subscription) {
-										const name = def.subscription.split(/[(:]/g)[0];
+										const name = def.subscription.trim().split(/[(:]/g)[0];
 										subscriptions.push(def.subscription);
 										if (!resolver["Subscription"]) resolver.Subscription = {};
-										resolver.Subscription[name] = this.createAsyncIteratorResolver(action.name, def.tags, def.filter);
+										resolver.Subscription[name] = this.createAsyncIteratorResolver(
+											action.name,
+											def.tags,
+											def.filter,
+										);
 									}
 
-									if (def.interface)
+									if (def.interface) {
 										interfaces.push(def.interface);
+									}
 
-									if (def.union)
+									if (def.union) {
 										unions.push(def.union);
+									}
 
-									if (def.enum)
+									if (def.enum) {
 										enums.push(def.enum);
+									}
 
-									if (def.input)
+									if (def.input) {
 										inputs.push(def.input);
+									}
 								}
 							}
 						});
 
-						if (Object.keys(resolver).length > 0)
+						if (Object.keys(resolver).length > 0) {
 							resolvers = _.merge(resolvers, resolver);
-
+						}
 					});
 
-					if (queries.length > 0
-					|| types.length > 0
-					|| mutations.length > 0
-					|| subscriptions.length > 0
-					|| interfaces.length > 0
-					|| unions.length > 0
-					|| enums.length > 0
-					|| inputs.length > 0) {
+					if (
+						queries.length > 0 ||
+						types.length > 0 ||
+						mutations.length > 0 ||
+						subscriptions.length > 0 ||
+						interfaces.length > 0 ||
+						unions.length > 0 ||
+						enums.length > 0 ||
+						inputs.length > 0
+					) {
 						let str = "";
 						if (queries.length > 0) {
 							str += `
@@ -334,16 +366,21 @@ module.exports = function(mixinOptions) {
 					}
 
 					return makeExecutableSchema({ typeDefs, resolvers });
-
-				} catch(err) {
-					throw new MoleculerServerError("Unable to compile GraphQL schema", 500, "UNABLE_COMPILE_GRAPHQL_SCHEMA", { err });
+				} catch (err) {
+					throw new MoleculerServerError(
+						"Unable to compile GraphQL schema",
+						500,
+						"UNABLE_COMPILE_GRAPHQL_SCHEMA",
+						{ err },
+					);
 				}
 			},
 
 			prepareGraphQLSchema() {
 				// Schema is up-to-date
-				if (!shouldUpdateSchema && this.graphqlHandler)
+				if (!shouldUpdateSchema && this.graphqlHandler) {
 					return;
+				}
 
 				// Create new server & regenerate GraphQL schema
 				this.logger.info("♻ Recreate Apollo GraphQL server and regenerate GraphQL schema...");
@@ -355,22 +392,29 @@ module.exports = function(mixinOptions) {
 
 					this.logger.debug("Generated GraphQL schema:\n\n" + GraphQL.printSchema(schema));
 
-					this.apolloServer = new ApolloServer(_.defaultsDeep(mixinOptions.serverOptions, {
-						schema,
-						context: ({ req, connection }) => {
-							return req ? {
-								ctx: req.$ctx,
-								service: req.$service,
-								params: req.$params,
-								loaders: this.createLoaders(req, services),
-							} : {
-								service: connection.$service
-							};
-						},
-						subscriptions: {
-							onConnect: connectionParams => ({ ...connectionParams, $service: this })
-						}
-					}));
+					this.apolloServer = new ApolloServer(
+						_.defaultsDeep(mixinOptions.serverOptions, {
+							schema,
+							context: ({ req, connection }) => {
+								return req
+									? {
+											ctx: req.$ctx,
+											service: req.$service,
+											params: req.$params,
+											loaders: this.createLoaders(req, services),
+									  }
+									: {
+											service: connection.$service,
+									  };
+							},
+							subscriptions: {
+								onConnect: connectionParams => ({
+									...connectionParams,
+									$service: this,
+								}),
+							},
+						}),
+					);
 
 					this.graphqlHandler = this.apolloServer.createHandler();
 					this.apolloServer.installSubscriptionHandlers(this.server);
@@ -379,10 +423,9 @@ module.exports = function(mixinOptions) {
 					shouldUpdateSchema = false;
 
 					this.broker.broadcast("graphql.schema.updated", {
-						schema: GraphQL.printSchema(schema)
+						schema: GraphQL.printSchema(schema),
 					});
-
-				} catch(err) {
+				} catch (err) {
 					this.logger.error(err);
 					throw err;
 				}
@@ -421,7 +464,9 @@ module.exports = function(mixinOptions) {
 										if (fieldAccum[resolverActionName] == null) {
 											// create a new DataLoader instance
 											fieldAccum[resolverActionName] = new DataLoader(keys =>
-												req.$ctx.call(resolverActionName, { [actionParam]: keys }),
+												req.$ctx.call(resolverActionName, {
+													[actionParam]: keys,
+												}),
 											);
 										}
 									}
@@ -447,22 +492,21 @@ module.exports = function(mixinOptions) {
 
 			const route = _.defaultsDeep(mixinOptions.routeOptions, {
 				aliases: {
-
 					"/"(req, res) {
 						try {
 							this.prepareGraphQLSchema();
 							return this.graphqlHandler(req, res);
-						} catch(err) {
+						} catch (err) {
 							this.sendError(req, res, err);
 						}
-					}
+					},
 				},
 
 				mappingPolicy: "restrict",
 
 				bodyParsers: {
 					json: true,
-					urlencoded: { extended: true }
+					urlencoded: { extended: true },
 				},
 			});
 
@@ -472,7 +516,7 @@ module.exports = function(mixinOptions) {
 
 		started() {
 			this.logger.info(`🚀 GraphQL server is available at ${mixinOptions.routeOptions.path}`);
-		}
+		},
 	};
 
 	if (mixinOptions.createAction) {
@@ -480,19 +524,25 @@ module.exports = function(mixinOptions) {
 			graphql: {
 				params: {
 					query: { type: "string" },
-					variables: { type: "object", optional: true }
+					variables: { type: "object", optional: true },
 				},
 				handler(ctx) {
 					this.prepareGraphQLSchema();
-					return GraphQL.graphql(this.graphqlSchema, ctx.params.query, null, { ctx }, ctx.params.variables);
-				}
-			}
+					return GraphQL.graphql(
+						this.graphqlSchema,
+						ctx.params.query,
+						null,
+						{ ctx },
+						ctx.params.variables,
+					);
+				},
+			},
 		};
 	}
 	serviceSchema.events = {
 		[mixinOptions.subscriptionEventName](event) {
 			this.pubsub.publish(event.tag, event.payload);
-		}
+		},
 	};
 	return serviceSchema;
 };
