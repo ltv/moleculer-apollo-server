@@ -45,5 +45,5 @@ declare module '@ltv/moleculer-apollo-server' {
 
   export function ApolloService(options: ApolloServiceOptions): ServiceSchema;
 
-  export function moleculerGql(typeString: string, ...placeholders: string): string;
+  export function moleculerGql(typeString: string, ...placeholders?: any[]): string;
 }
