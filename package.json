@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "@apollographql/graphql-playground-html": "^1.6.6",
+    "@ltv/moleculer-apollo-server": "^0.1.14",
     "accept": "^3.1.3",
     "apollo-server-core": "^2.3.4",
     "dataloader": "^1.4.0",
