@@ -155,6 +155,7 @@ module.exports = function(mixinOptions) {
 				try {
 					let typeDefs = [];
 					let resolvers = {};
+					let schemaDirectives = null;
 
 					if (mixinOptions.typeDefs) {
 						typeDefs = typeDefs.concat(mixinOptions.typeDefs);
@@ -162,6 +163,10 @@ module.exports = function(mixinOptions) {
 
 					if (mixinOptions.resolvers) {
 						resolvers = _.cloneDeep(mixinOptions.resolvers);
+					}
+
+					if (mixinOptions.schemaDirectives) {
+						schemaDirectives = _.cloneDeep(mixinOptions.schemaDirectives);
 					}
 
 					let queries = [];
@@ -369,7 +374,7 @@ module.exports = function(mixinOptions) {
 						typeDefs.push(str);
 					}
 
-					return makeExecutableSchema({ typeDefs, resolvers });
+					return makeExecutableSchema({ typeDefs, resolvers, schemaDirectives });
 				} catch (err) {
 					throw new MoleculerServerError(
 						"Unable to compile GraphQL schema",
