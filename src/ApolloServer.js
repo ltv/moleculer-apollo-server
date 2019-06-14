@@ -70,7 +70,9 @@ class ApolloServer extends ApolloServerBase {
 			// Handle incoming GraphQL requests using Apollo Server.
 			const graphqlHandler = moleculerApollo(() => this.createGraphQLServerOptions(req, res));
 			const responseData = await graphqlHandler(req, res);
-			send(req, res, 200, responseData);
+			if (!responseData.errors) {
+				return send(req, res, 200, responseData);
+			}
 		};
 	}
 

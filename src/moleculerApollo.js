@@ -52,7 +52,7 @@ module.exports = function graphqlMoleculer(options) {
 			res.statusCode = error.statusCode || error.code || 500;
 			res.end(error.message);
 
-			return undefined;
+			return { errors: error };
 		}
 	};
 };
