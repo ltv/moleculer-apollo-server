@@ -32,6 +32,11 @@ module.exports = function(mixinOptions) {
 			"$services.changed"() {
 				this.invalidateGraphQLSchema();
 			},
+			[mixinOptions.subscriptionEventName](event) {
+				if (this.pubsub) {
+					this.pubsub.publish(event.tag, event.payload);
+				}
+			},
 		},
 
 		methods: {
@@ -93,7 +98,7 @@ module.exports = function(mixinOptions) {
 					try {
 						if (dataLoader) {
 							const dataLoaderKey = rootKeys[0]; // use the first root key
-							const rootValue = root && root[dataLoaderKey];
+							const rootValue = root && _.get(root, dataLoaderKey);
 							if (rootValue == null) {
 								return null;
 							}
@@ -106,9 +111,7 @@ module.exports = function(mixinOptions) {
 							if (root && rootKeys) {
 								rootKeys.forEach(k => _.set(p, def.rootParams[k], _.get(root, k)));
 							}
-
-							const parentParams = context.params.variables || {};
-							return await context.ctx.call(actionName, _.defaultsDeep(args, p, params, { ...parentParams }));
+							return await context.ctx.call(actionName, _.defaultsDeep(args, p, params));
 						}
 					} catch (err) {
 						if (nullIfError) {
@@ -181,13 +184,13 @@ module.exports = function(mixinOptions) {
 					const processedServices = new Set();
 
 					services.forEach(service => {
+						const serviceName = this.getServiceName(service);
+
+						// Skip multiple instances of services
+						if (processedServices.has(serviceName)) return;
+						processedServices.add(serviceName);
+
 						if (service.settings.graphql) {
-							const serviceName = this.getServiceName(service);
-
-							// Skip multiple instances of services
-							if (processedServices.has(serviceName)) return;
-							processedServices.add(serviceName);
-
 							// --- COMPILE SERVICE-LEVEL DEFINITIONS ---
 							if (_.isObject(service.settings.graphql)) {
 								const globalDef = service.settings.graphql;
@@ -466,16 +469,22 @@ module.exports = function(mixinOptions) {
 						const typeLoaders = Object.values(resolvers).reduce((resolverAccum, type) => {
 							const resolverLoaders = Object.values(type).reduce((fieldAccum, resolver) => {
 								if (_.isPlainObject(resolver)) {
-									const { action, dataLoader = false, rootParams = {} } = resolver;
+									const { action, dataLoader = false, params = {}, rootParams = {} } = resolver;
 									const actionParam = Object.values(rootParams)[0]; // use the first root parameter
 									if (dataLoader && actionParam) {
 										const resolverActionName = this.getResolverActionName(serviceName, action);
 										if (fieldAccum[resolverActionName] == null) {
 											// create a new DataLoader instance
 											fieldAccum[resolverActionName] = new DataLoader(keys =>
-												req.$ctx.call(resolverActionName, {
-													[actionParam]: keys,
-												}),
+												req.$ctx.call(
+													resolverActionName,
+													_.defaultsDeep(
+														{
+															[actionParam]: keys,
+														},
+														params,
+													),
+												),
 											);
 										}
 									}
@@ -548,10 +557,6 @@ module.exports = function(mixinOptions) {
 			},
 		};
 	}
-	serviceSchema.events = {
-		[mixinOptions.subscriptionEventName](event) {
-			this.pubsub.publish(event.tag, event.payload);
-		},
-	};
+
 	return serviceSchema;
 };
