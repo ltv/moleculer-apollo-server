@@ -252,7 +252,7 @@ module.exports = function(mixinOptions) {
 									if (!resolver["Query"]) resolver.Query = {};
 
 									_.castArray(def.query).forEach(query => {
-										const name = query.trim().split(/[(:]/g)[0];
+										const name = this.getFieldName(query);
 										queries.push(query);
 										resolver.Query[name] = this.createActionResolver(action.name);
 									});
@@ -262,7 +262,7 @@ module.exports = function(mixinOptions) {
 									if (!resolver["Mutation"]) resolver.Mutation = {};
 
 									_.castArray(def.mutation).forEach(mutation => {
-										const name = mutation.trim().split(/[(:]/g)[0];
+										const name = this.getFieldName(mutation);
 										mutations.push(mutation);
 										resolver.Mutation[name] = this.createActionResolver(action.name);
 									});
@@ -272,7 +272,7 @@ module.exports = function(mixinOptions) {
 									if (!resolver["Subscription"]) resolver.Subscription = {};
 
 									_.castArray(def.subscription).forEach(subscription => {
-										const name = subscription.trim().split(/[(:]/g)[0];
+										const name = this.getFieldName(subscription);
 										subscriptions.push(subscription);
 										resolver.Subscription[name] = this.createAsyncIteratorResolver(
 											action.name,
@@ -404,9 +404,9 @@ module.exports = function(mixinOptions) {
 
 					this.logger.debug("Generated GraphQL schema:\n\n" + GraphQL.printSchema(schema));
 
-					this.apolloServer = new ApolloServer(
-						_.defaultsDeep(mixinOptions.serverOptions, {
-							schema,
+					this.apolloServer = new ApolloServer({
+						schema,
+						..._.defaultsDeep(mixinOptions.serverOptions, {
 							context: ({ req, connection }) => {
 								return req
 									? {
@@ -426,9 +426,9 @@ module.exports = function(mixinOptions) {
 								}),
 							},
 						}),
-					);
+					});
 
-					this.graphqlHandler = this.apolloServer.createHandler();
+					this.graphqlHandler = this.apolloServer.createHandler(mixinOptions.serverOptions);
 					this.apolloServer.installSubscriptionHandlers(this.server);
 					this.graphqlSchema = schema;
 
@@ -441,6 +441,20 @@ module.exports = function(mixinOptions) {
 					this.logger.error(err);
 					throw err;
 				}
+			},
+
+			/**
+			 * Return the field name in a GraphQL Mutation, Query, or Subscription declaration
+			 * @param {String} declaration - Mutation, Query, or Subscription declaration
+			 * @returns {String} Field name of declaration
+			 */
+			getFieldName(declaration) {
+				// Remove all multi-line/single-line descriptions and comments
+				const cleanedDeclaration = declaration
+					.replace(/"([\s\S]*?)"/g, "")
+					.replace(/^[\s]*?#.*\n?/gm, "")
+					.trim();
+				return cleanedDeclaration.split(/[(:]/g)[0];
 			},
 
 			/**
@@ -517,6 +531,20 @@ module.exports = function(mixinOptions) {
 						} catch (err) {
 							this.sendError(req, res, err);
 						}
+					},
+					"/.well-known/apollo/server-health"(req, res) {
+						try {
+							this.prepareGraphQLSchema();
+						} catch (err) {
+							res.statusCode = 503;
+							return this.sendResponse(
+								req,
+								res,
+								{ status: "fail", schema: false },
+								{ responseType: "application/health+json" },
+							);
+						}
+						return this.graphqlHandler(req, res);
 					},
 				},
 
