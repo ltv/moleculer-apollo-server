@@ -66,7 +66,7 @@
 	},
 	"dependencies": {
 		"@apollographql/graphql-playground-html": "^1.6.24",
-		"accept": "^3.1.3",
+		"@hapi/accept": "^5.0.0",
 		"apollo-server-core": "^2.9.6",
 		"dataloader": "^1.4.0",
 		"graphql-subscriptions": "^1.1.0",

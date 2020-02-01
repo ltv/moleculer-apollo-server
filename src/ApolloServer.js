@@ -63,14 +63,14 @@ class ApolloServer extends ApolloServerBase {
 							endpoint: this.graphqlPath,
 							subscriptionEndpoint: this.subscriptionsPath,
 						},
-						this.playgroundOptions,
+						this.playgroundOptions
 					);
 					return send(
 						req,
 						res,
 						200,
 						renderPlaygroundPage(middlewareOptions),
-						"text/html",
+						"text/html"
 					);
 				}
 			}
