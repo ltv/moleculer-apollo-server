@@ -1,6 +1,6 @@
 {
 	"name": "@ltv/moleculer-apollo-server",
-	"version": "0.1.22",
+	"version": "0.1.24",
 	"description": "Apollo GraphQL server for Moleculer API Gateway",
 	"main": "index.js",
 	"scripts": {
@@ -42,9 +42,9 @@
 		"graphql": "^14.5.8",
 		"jest": "^24.9.0",
 		"jest-cli": "^24.9.0",
-		"moleculer": "^0.14.0-beta5",
-		"moleculer-repl": "^0.6.1",
-		"moleculer-web": "^0.9.0-beta6",
+		"moleculer": "^0.14.0-rc2",
+		"moleculer-repl": "^0.6.2",
+		"moleculer-web": "^0.9.0-beta7",
 		"nodemon": "^1.19.4",
 		"npm-check": "^5.9.0",
 		"prettier": "^1.18.2"
@@ -67,11 +67,12 @@
 	"dependencies": {
 		"@apollographql/graphql-playground-html": "^1.6.24",
 		"@hapi/accept": "^5.0.0",
-		"apollo-server-core": "^2.9.6",
-		"dataloader": "^1.4.0",
+		"apollo-server-core": "^2.9.16",
+		"dataloader": "^2.0.0",
 		"graphql-subscriptions": "^1.1.0",
-		"graphql-tools": "^4.0.5",
-		"graphql-upload": "^8.1.0",
-		"lodash": "^4.17.15"
+		"graphql-tools": "^4.0.6",
+		"graphql-upload": "^10.0.0",
+		"lodash": "^4.17.15",
+		"object-hash": "^2.0.1"
 	}
 }

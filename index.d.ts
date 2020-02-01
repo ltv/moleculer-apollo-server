@@ -1,49 +1,63 @@
-declare module '@ltv/moleculer-apollo-server' {
-  import { ServiceSchema } from 'moleculer';
-  import { Config } from 'apollo-server-core';
-  export {
-    GraphQLUpload,
-    GraphQLExtension,
-    gql,
-    ApolloError,
-    toApolloError,
-    SyntaxError,
-    ValidationError,
-    AuthenticationError,
-    ForbiddenError,
-    UserInputError,
-    defaultPlaygroundOptions
-  } from 'apollo-server-core';
+declare module "@ltv/moleculer-apollo-server" {
+	import { ServiceSchema } from "moleculer";
+	import { Config } from "apollo-server-core";
+	export {
+		GraphQLUpload,
+		GraphQLExtension,
+		gql,
+		ApolloError,
+		toApolloError,
+		SyntaxError,
+		ValidationError,
+		AuthenticationError,
+		ForbiddenError,
+		UserInputError,
+		defaultPlaygroundOptions,
+	} from "apollo-server-core";
 
-  export * from 'graphql-tools';
+	export * from "graphql-tools";
 
-  export interface ApolloServerOptions {
-    path: string;
-    disableHealthCheck: boolean;
-    onHealthCheck: any;
-  }
+	export interface ApolloServerOptions {
+		path: string;
+		disableHealthCheck: boolean;
+		onHealthCheck: () => {};
+	}
 
-  export class ApolloServer {
-    createGraphQLServerOptions(req: any, res: any): Promise<any>;
-    createHandler(options: ApolloServerOptions): void;
-    supportsUploads(): boolean;
-    supportsSubscriptions(): boolean;
-  }
+	export class ApolloServer {
+		createGraphQLServerOptions(req: any, res: any): Promise<any>;
+		createHandler(options: ApolloServerOptions): void;
+		supportsUploads(): boolean;
+		supportsSubscriptions(): boolean;
+	}
 
-  export interface ApolloServiceOptions {
-    typeDefs?: string;
-    resolvers?: any;
-    routeOptions: {
-      path: string;
-      cors: boolean | Object;
-      mappingPolicy: string;
-      aliases?: any;
-      bodyParsers?: any;
-    };
-    serverOptions: Config;
-  }
+	export interface GraphQLNodeResolver {
+		action: string;
+		rootParams?: {
+			[key: string]: string;
+		};
+		dataloader?: boolean;
+	}
 
-  export function ApolloService(options: ApolloServiceOptions): ServiceSchema;
+	export interface GraphQLTypeResolver {
+		[key: string]: {
+			[key: string]: GraphQLNodeResolver | { [key: string]: any };
+		};
+	}
 
-  export function moleculerGql(typeString: string, ...placeholders?: any[]): string;
+	export interface ApolloServiceOptions {
+		typeDefs?: string;
+		resolvers?: GraphQLTypeResolver;
+		routeOptions: {
+			path: string;
+			cors: boolean | Object;
+			mappingPolicy: string;
+			aliases?: any;
+			bodyParsers?: any;
+		};
+		serverOptions: Config;
+	}
+
+	export function ApolloService(options: ApolloServiceOptions): ServiceSchema;
+
+	export function moleculerGql(typeString: string, ...placeholders: any[]): string;
 }
