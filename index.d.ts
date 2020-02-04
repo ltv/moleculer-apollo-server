@@ -1,6 +1,9 @@
 declare module "@ltv/moleculer-apollo-server" {
-	import { ServiceSchema } from "moleculer";
+	import { ServiceSchema, Context } from "moleculer";
 	import { Config } from "apollo-server-core";
+	import { OptionsUrlencoded } from "body-parser";
+	import { SchemaDirectiveVisitor, IResolvers } from "graphql-tools";
+
 	export {
 		GraphQLUpload,
 		GraphQLExtension,
@@ -30,34 +33,57 @@ declare module "@ltv/moleculer-apollo-server" {
 		supportsSubscriptions(): boolean;
 	}
 
-	export interface GraphQLNodeResolver {
+	export interface ActionResolverSchema {
 		action: string;
 		rootParams?: {
 			[key: string]: string;
 		};
-		dataloader?: boolean;
+		dataLoader?: boolean;
 	}
 
-	export interface GraphQLTypeResolver {
+	export interface ServiceResolverSchema {
 		[key: string]: {
-			[key: string]: GraphQLNodeResolver | { [key: string]: any };
+			[key: string]: ActionResolverSchema;
 		};
+	}
+
+	export interface ServiceRouteOptions {
+		path: string;
+		use?: any[];
+		etag?: boolean;
+		whitelist?: string[];
+		authorization?: boolean;
+		camelCaseNames?: boolean;
+		aliases?: {
+			[key: string]: any; // Should discuss more on this. string | AliasSchema, ...
+		};
+		bodyParsers?: {
+			json: boolean;
+			urlencoded: OptionsUrlencoded;
+		};
+		cors?: boolean | { origin: string[]; methods: string[] };
+		callOptions?: {
+			timeout: number;
+			fallbackResponse?: any;
+		};
+		onBeforeCall: (ctx: Context, route: any, req: any, res: any) => Promise<any>;
+		onAfterCall: (ctx: Context, route: any, req: any, res: any) => Promise<any>;
 	}
 
 	export interface ApolloServiceOptions {
-		typeDefs?: string;
-		resolvers?: GraphQLTypeResolver;
-		routeOptions: {
-			path: string;
-			cors: boolean | Object;
-			mappingPolicy: string;
-			aliases?: any;
-			bodyParsers?: any;
+		typeDefs?: string | string[];
+		resolvers?: ServiceResolverSchema | IResolvers | Array<IResolvers>;
+		schemaDirectives?: {
+			[name: string]: typeof SchemaDirectiveVisitor;
 		};
+		routeOptions: ServiceRouteOptions;
 		serverOptions: Config;
 	}
 
 	export function ApolloService(options: ApolloServiceOptions): ServiceSchema;
 
-	export function moleculerGql(typeString: string, ...placeholders: any[]): string;
+	export function moleculerGql<T>(
+		typeString: TemplateStringsArray | string,
+		...placeholders: T[]
+	): string;
 }
